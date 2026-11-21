@@ -1,0 +1,6 @@
+{
+  "name": "TripShield",
+  "description": "Embedded micro-insurance Android app for gig delivery riders with live GPS trip cover, Google Maps incident pinning, Firestore ledger sync, Gemini High-Thinking Claim Advisor, and hands-free Gemini TTS voice alerts.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
