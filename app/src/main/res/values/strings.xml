@@ -1,3 +1,49 @@
 <resources>
     <string name="app_name">TripShield</string>
+    <string name="tagline">Per-trip protection for gig delivery riders</string>
+
+    <!-- Navigation -->
+    <string name="nav_cover">Cover</string>
+    <string name="nav_map">Live Map</string>
+    <string name="nav_claims">Claims</string>
+    <string name="nav_ledger">Ledger</string>
+    <string name="nav_profile">Profile</string>
+
+    <!-- Auth -->
+    <string name="auth_title">Protection that rides with you</string>
+    <string name="auth_subtitle">Instant per-trip micro-insurance, GPS incident pins, and clear INR payouts built for delivery partners.</string>
+    <string name="auth_google_button">Continue with Google</string>
+    <string name="auth_checking_session">Checking your rider account…</string>
+    <string name="auth_trust_note">Secured with Google Sign-In and private cloud sync</string>
+
+    <!-- Cover -->
+    <string name="cover_protected_now">Protected Right Now</string>
+    <string name="cover_not_active">Not Currently Covered</string>
+    <string name="cover_activate_cta">Activate Trip Cover · ₹8.00</string>
+    <string name="cover_end_cta">End Protected Trip</string>
+    <string name="cover_listen_cta">Listen to Status</string>
+    <string name="cover_recent_trips">Recent Trips</string>
+
+    <!-- Map -->
+    <string name="map_drop_pin">Drop Incident Pin</string>
+    <string name="map_file_claim_here">File Claim at Pin</string>
+    <string name="map_enable_gps">Enable Live GPS</string>
+    <string name="map_hospitals_toggle">Cashless Hospitals</string>
+
+    <!-- Claims -->
+    <string name="claims_new_cta">File Claim</string>
+    <string name="claims_advisor_cta">AI Claim Advisor</string>
+    <string name="claims_advisor_title">Policy &amp; Claim Advisor</string>
+    <string name="claims_attach_photo">Attach Evidence Photo</string>
+    <string name="claims_read_aloud">Read Aloud</string>
+    <string name="claims_stop_audio">Stop Audio</string>
+
+    <!-- Ledger -->
+    <string name="ledger_balance_label">TripShield Wallet Balance</string>
+    <string name="ledger_topup_cta">Add ₹200.00</string>
+    <string name="ledger_search_hint">Search trip ID or entry…</string>
+
+    <!-- Profile -->
+    <string name="profile_save_cta">Save Rider Details</string>
+    <string name="profile_sign_out">Sign Out</string>
 </resources>

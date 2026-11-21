@@ -1,0 +1,99 @@
+{
+  "entities": {
+    "RiderProfile": {
+      "title": "RiderProfile",
+      "description": "Authenticated gig delivery rider profile, vehicle metadata, INR wallet balance, and voice alert preference.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Firebase Auth UID of the rider." },
+        "displayName": { "type": "string", "description": "Rider full name." },
+        "email": { "type": "string", "format": "email", "description": "Rider email address." },
+        "riderCode": { "type": "string", "description": "Unique TripShield rider identifier (e.g. TS-RDR-4092)." },
+        "vehicleNumber": { "type": "string", "description": "Registered two-wheeler registration plate." },
+        "partnerFleet": { "type": "string", "description": "Primary gig delivery partner fleet." },
+        "walletBalanceInr": { "type": "number", "description": "Current INR micro-insurance wallet balance." },
+        "voiceAlertsEnabled": { "type": "boolean", "description": "Whether hands-free Gemini TTS voice alerts are enabled." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp (FieldValue.serverTimestamp()) when profile was created." },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp (FieldValue.serverTimestamp()) when profile was last updated." }
+      },
+      "required": ["userId", "displayName", "email", "riderCode", "vehicleNumber", "partnerFleet", "walletBalanceInr", "voiceAlertsEnabled", "createdAt", "updatedAt"]
+    },
+    "TripRecord": {
+      "title": "TripRecord",
+      "description": "Individual delivery trip micro-insurance cover record with live GPS start/end coordinates and coverage limits.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Owner Firebase Auth UID." },
+        "tripCode": { "type": "string", "description": "Human-readable monospace trip code (e.g. TRIP-8821)." },
+        "status": { "type": "string", "enum": ["ACTIVE", "COMPLETED", "FLAGGED"], "description": "Current trip cover lifecycle state." },
+        "platformName": { "type": "string", "description": "Delivery platform for this drop." },
+        "routeSummary": { "type": "string", "description": "Plain-language route or zone summary." },
+        "premiumInr": { "type": "number", "description": "Micro-premium charged in INR." },
+        "coverageLimitInr": { "type": "number", "description": "Maximum medical/accident cover limit in INR." },
+        "startLat": { "type": "number", "description": "Trip start latitude." },
+        "startLng": { "type": "number", "description": "Trip start longitude." },
+        "endLat": { "type": "number", "description": "Optional trip end latitude." },
+        "endLng": { "type": "number", "description": "Optional trip end longitude." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp (FieldValue.serverTimestamp()) when trip cover started." },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp (FieldValue.serverTimestamp()) when trip was last updated." },
+        "endedAt": { "type": "string", "format": "date-time", "description": "Optional server timestamp (FieldValue.serverTimestamp()) when trip cover ended." }
+      },
+      "required": ["userId", "tripCode", "status", "platformName", "routeSummary", "premiumInr", "coverageLimitInr", "startLat", "startLng", "createdAt", "updatedAt"]
+    },
+    "ClaimRecord": {
+      "title": "ClaimRecord",
+      "description": "Incident claim submitted by a rider with optional GPS pin, photo evidence flag, and AI policy advisor summary.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Owner Firebase Auth UID." },
+        "claimCode": { "type": "string", "description": "Monospace claim identifier (e.g. CLM-3041)." },
+        "tripId": { "type": "string", "description": "Linked trip document ID or OUTSIDE_TRIP." },
+        "tripCode": { "type": "string", "description": "Linked trip code or OUTSIDE_TRIP." },
+        "incidentType": { "type": "string", "enum": ["ACCIDENT", "BREAKDOWN", "WEATHER_DELAY", "THEFT"], "description": "Category of covered incident." },
+        "description": { "type": "string", "description": "Rider description of what happened." },
+        "status": { "type": "string", "enum": ["PENDING", "APPROVED", "PAID", "OUTSIDE_WINDOW"], "description": "Claim review status." },
+        "requestedInr": { "type": "number", "description": "Claimed reimbursement amount in INR." },
+        "incidentLat": { "type": "number", "description": "Optional pinned incident latitude." },
+        "incidentLng": { "type": "number", "description": "Optional pinned incident longitude." },
+        "evidenceAttached": { "type": "boolean", "description": "Whether rider attached a photo via Android Photo Picker." },
+        "aiSummary": { "type": "string", "description": "Optional Gemini High-Thinking eligibility assessment summary." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp (FieldValue.serverTimestamp()) when claim was filed." },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp (FieldValue.serverTimestamp()) when claim was updated." }
+      },
+      "required": ["userId", "claimCode", "tripId", "tripCode", "incidentType", "description", "status", "requestedInr", "evidenceAttached", "aiSummary", "createdAt", "updatedAt"]
+    },
+    "LedgerEntry": {
+      "title": "LedgerEntry",
+      "description": "Immutable INR financial ledger entry for trip premiums, claim payouts, and wallet top-ups.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Owner Firebase Auth UID." },
+        "type": { "type": "string", "enum": ["PREMIUM", "PAYOUT", "TOPUP"], "description": "Ledger transaction type." },
+        "title": { "type": "string", "description": "Plain-language transaction title." },
+        "referenceCode": { "type": "string", "description": "Monospace trip or claim code reference." },
+        "amountInr": { "type": "number", "description": "Signed INR amount (negative for premium debit, positive for top-up/payout)." },
+        "balanceAfterInr": { "type": "number", "description": "Wallet balance in INR immediately after this entry." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp (FieldValue.serverTimestamp()) when entry was recorded." }
+      },
+      "required": ["userId", "type", "title", "referenceCode", "amountInr", "balanceAfterInr", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/RiderProfile" },
+      "description": "Authenticated rider profile and INR wallet summary."
+    },
+    "/users/{userId}/trips/{tripId}": {
+      "schema": { "$ref": "#/entities/TripRecord" },
+      "description": "Rider-owned per-trip micro-insurance cover records."
+    },
+    "/users/{userId}/claims/{claimId}": {
+      "schema": { "$ref": "#/entities/ClaimRecord" },
+      "description": "Rider-owned incident claims and AI eligibility summaries."
+    },
+    "/users/{userId}/ledger/{entryId}": {
+      "schema": { "$ref": "#/entities/LedgerEntry" },
+      "description": "Immutable rider INR premium, payout, and top-up ledger entries."
+    }
+  }
+}

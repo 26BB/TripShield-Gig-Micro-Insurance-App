@@ -1,0 +1,238 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global safety net: default deny all paths
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Shared Security Primitives ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidTimestamp(ts) {
+      return ts is timestamp && ts <= request.time;
+    }
+
+    // --- Validation Helpers ---
+
+    function isValidRiderProfile(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 80 &&
+             data.email is string && data.email.size() <= 120 &&
+             data.riderCode is string && data.riderCode.size() >= 3 && data.riderCode.size() <= 32 &&
+             data.vehicleNumber is string && data.vehicleNumber.size() <= 24 &&
+             data.partnerFleet is string && data.partnerFleet.size() >= 1 && data.partnerFleet.size() <= 60 &&
+             data.walletBalanceInr is number && data.walletBalanceInr >= 0 && data.walletBalanceInr <= 1000000 &&
+             data.voiceAlertsEnabled is bool &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidTripRecord(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.tripCode is string && data.tripCode.size() >= 3 && data.tripCode.size() <= 32 &&
+             data.status is string && data.status in ['ACTIVE', 'COMPLETED', 'FLAGGED'] &&
+             data.platformName is string && data.platformName.size() >= 1 && data.platformName.size() <= 40 &&
+             data.routeSummary is string && data.routeSummary.size() >= 1 && data.routeSummary.size() <= 120 &&
+             data.premiumInr is number && data.premiumInr >= 0 && data.premiumInr <= 5000 &&
+             data.coverageLimitInr is number && data.coverageLimitInr >= 1000 && data.coverageLimitInr <= 5000000 &&
+             data.startLat is number && data.startLat >= -90 && data.startLat <= 90 &&
+             data.startLng is number && data.startLng >= -180 && data.startLng <= 180 &&
+             (!('endLat' in data) || data.endLat == null || (data.endLat is number && data.endLat >= -90 && data.endLat <= 90)) &&
+             (!('endLng' in data) || data.endLng == null || (data.endLng is number && data.endLng >= -180 && data.endLng <= 180)) &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt) &&
+             (!('endedAt' in data) || data.endedAt == null || isValidTimestamp(data.endedAt));
+    }
+
+    function isValidClaimRecord(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.claimCode is string && data.claimCode.size() >= 3 && data.claimCode.size() <= 32 &&
+             data.tripId is string && data.tripId.size() >= 1 && data.tripId.size() <= 128 &&
+             data.tripCode is string && data.tripCode.size() >= 1 && data.tripCode.size() <= 32 &&
+             data.incidentType is string && data.incidentType in ['ACCIDENT', 'BREAKDOWN', 'WEATHER_DELAY', 'THEFT'] &&
+             data.description is string && data.description.size() >= 5 && data.description.size() <= 600 &&
+             data.status is string && data.status in ['PENDING', 'APPROVED', 'PAID', 'OUTSIDE_WINDOW'] &&
+             data.requestedInr is number && data.requestedInr >= 1 && data.requestedInr <= 500000 &&
+             (!('incidentLat' in data) || data.incidentLat == null || (data.incidentLat is number && data.incidentLat >= -90 && data.incidentLat <= 90)) &&
+             (!('incidentLng' in data) || data.incidentLng == null || (data.incidentLng is number && data.incidentLng >= -180 && data.incidentLng <= 180)) &&
+             data.evidenceAttached is bool &&
+             data.aiSummary is string && data.aiSummary.size() <= 1200 &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidLedgerEntry(data) {
+      return data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.type is string && data.type in ['PREMIUM', 'PAYOUT', 'TOPUP'] &&
+             data.title is string && data.title.size() >= 1 && data.title.size() <= 100 &&
+             data.referenceCode is string && data.referenceCode.size() >= 1 && data.referenceCode.size() <= 40 &&
+             data.amountInr is number && data.amountInr >= -500000 && data.amountInr <= 500000 &&
+             data.balanceAfterInr is number && data.balanceAfterInr >= 0 && data.balanceAfterInr <= 1000000 &&
+             isValidTimestamp(data.createdAt);
+    }
+
+    // --- Collection Rules ---
+
+    match /users/{userId} {
+      allow get: if isOwner(userId) && isValidId(userId);
+      allow list: if false;
+
+      allow create: if isOwner(userId) &&
+                       isValidId(userId) &&
+                       incoming().userId == request.auth.uid &&
+                       incoming().keys().hasAll([
+                         'userId', 'displayName', 'email', 'riderCode',
+                         'vehicleNumber', 'partnerFleet', 'walletBalanceInr',
+                         'voiceAlertsEnabled', 'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().keys().hasOnly([
+                         'userId', 'displayName', 'email', 'riderCode',
+                         'vehicleNumber', 'partnerFleet', 'walletBalanceInr',
+                         'voiceAlertsEnabled', 'createdAt', 'updatedAt'
+                       ]) &&
+                       isValidRiderProfile(incoming());
+
+      allow update: if isOwner(userId) &&
+                       isValidId(userId) &&
+                       isValidRiderProfile(incoming()) &&
+                       incoming().userId == existing().userId &&
+                       incoming().riderCode == existing().riderCode &&
+                       incoming().createdAt == existing().createdAt &&
+                       (
+                         incoming().diff(existing()).affectedKeys().hasOnly([
+                           'displayName', 'vehicleNumber', 'partnerFleet', 'voiceAlertsEnabled', 'updatedAt'
+                         ]) ||
+                         incoming().diff(existing()).affectedKeys().hasOnly([
+                           'walletBalanceInr', 'updatedAt'
+                         ])
+                       );
+
+      allow delete: if false;
+
+      match /trips/{tripId} {
+        allow get: if isOwner(userId) && isValidId(userId) && isValidId(tripId);
+        allow list: if isOwner(userId) && isValidId(userId);
+
+        allow create: if isOwner(userId) &&
+                         isValidId(userId) &&
+                         isValidId(tripId) &&
+                         incoming().userId == request.auth.uid &&
+                         incoming().keys().hasAll([
+                           'userId', 'tripCode', 'status', 'platformName',
+                           'routeSummary', 'premiumInr', 'coverageLimitInr',
+                           'startLat', 'startLng', 'createdAt', 'updatedAt'
+                         ]) &&
+                         incoming().keys().hasOnly([
+                           'userId', 'tripCode', 'status', 'platformName',
+                           'routeSummary', 'premiumInr', 'coverageLimitInr',
+                           'startLat', 'startLng', 'endLat', 'endLng',
+                           'createdAt', 'updatedAt', 'endedAt'
+                         ]) &&
+                         isValidTripRecord(incoming());
+
+        allow update: if isOwner(userId) &&
+                         isValidId(userId) &&
+                         isValidId(tripId) &&
+                         isValidTripRecord(incoming()) &&
+                         existing().status == 'ACTIVE' &&
+                         incoming().userId == existing().userId &&
+                         incoming().tripCode == existing().tripCode &&
+                         incoming().createdAt == existing().createdAt &&
+                         (
+                           (incoming().status == 'COMPLETED' &&
+                            incoming().diff(existing()).affectedKeys().hasOnly([
+                              'status', 'endLat', 'endLng', 'endedAt', 'routeSummary', 'updatedAt'
+                            ])) ||
+                           (incoming().status == 'FLAGGED' &&
+                            incoming().diff(existing()).affectedKeys().hasOnly([
+                              'status', 'routeSummary', 'updatedAt'
+                            ]))
+                         );
+
+        allow delete: if false;
+      }
+
+      match /claims/{claimId} {
+        allow get: if isOwner(userId) && isValidId(userId) && isValidId(claimId);
+        allow list: if isOwner(userId) && isValidId(userId);
+
+        allow create: if isOwner(userId) &&
+                         isValidId(userId) &&
+                         isValidId(claimId) &&
+                         incoming().userId == request.auth.uid &&
+                         incoming().keys().hasAll([
+                           'userId', 'claimCode', 'tripId', 'tripCode',
+                           'incidentType', 'description', 'status', 'requestedInr',
+                           'evidenceAttached', 'aiSummary', 'createdAt', 'updatedAt'
+                         ]) &&
+                         incoming().keys().hasOnly([
+                           'userId', 'claimCode', 'tripId', 'tripCode',
+                           'incidentType', 'description', 'status', 'requestedInr',
+                           'incidentLat', 'incidentLng', 'evidenceAttached',
+                           'aiSummary', 'createdAt', 'updatedAt'
+                         ]) &&
+                         isValidClaimRecord(incoming()) &&
+                         (incoming().status == 'PENDING' || incoming().status == 'OUTSIDE_WINDOW');
+
+        allow update: if isOwner(userId) &&
+                         isValidId(userId) &&
+                         isValidId(claimId) &&
+                         isValidClaimRecord(incoming()) &&
+                         existing().status == 'PENDING' &&
+                         incoming().userId == existing().userId &&
+                         incoming().claimCode == existing().claimCode &&
+                         incoming().tripId == existing().tripId &&
+                         incoming().createdAt == existing().createdAt &&
+                         incoming().diff(existing()).affectedKeys().hasOnly([
+                           'description', 'aiSummary', 'evidenceAttached', 'updatedAt'
+                         ]);
+
+        allow delete: if isOwner(userId) &&
+                         isValidId(userId) &&
+                         isValidId(claimId) &&
+                         existing().status == 'PENDING';
+      }
+
+      match /ledger/{entryId} {
+        allow get: if isOwner(userId) && isValidId(userId) && isValidId(entryId);
+        allow list: if isOwner(userId) && isValidId(userId);
+
+        allow create: if isOwner(userId) &&
+                         isValidId(userId) &&
+                         isValidId(entryId) &&
+                         incoming().userId == request.auth.uid &&
+                         incoming().keys().hasAll([
+                           'userId', 'type', 'title', 'referenceCode',
+                           'amountInr', 'balanceAfterInr', 'createdAt'
+                         ]) &&
+                         incoming().keys().hasOnly([
+                           'userId', 'type', 'title', 'referenceCode',
+                           'amountInr', 'balanceAfterInr', 'createdAt'
+                         ]) &&
+                         isValidLedgerEntry(incoming());
+
+        allow update, delete: if false;
+      }
+    }
+  }
+}
